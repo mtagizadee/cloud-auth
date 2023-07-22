@@ -4,6 +4,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"time"
+
+	"auth/packages/_jwt"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
@@ -39,6 +42,7 @@ func main() {
 
 	auth := v1.Group("/auth")
 	auth.POST("/signup", signup)
+	auth.POST("/login", login)
 
 	v1.GET("/ping", ping)
 	r.Run("localhost:3001") 
@@ -92,4 +96,56 @@ func signup(c *gin.Context) {
 	}
 	
 	c.JSON(http.StatusOK, user)	
+}
+
+type LoginUserDto struct {
+	Email string `binding:"required,email"`
+	Password string `binding:"required,min=8,max=32"`
+}
+
+func (dto *LoginUserDto) ValidatePassword(dbHash string) bool {
+	hash := sha256.Sum256([]byte(dto.Password))
+	return fmt.Sprintf("%x", hash) == dbHash
+}
+
+func login(c *gin.Context) {
+	var dto LoginUserDto
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// find user by email
+	var user User
+	db := getDB()
+	if err := db.Where("email = ?", dto.Email).First(&user).Error; err != nil {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "invalid credentials",
+		})
+		return
+	}
+
+	// validate password
+	if !dto.ValidatePassword(user.Password) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "invalid credentials",
+		})
+		return
+	}
+
+	token, err := _jwt.Token(map[string]int{
+		"id": int(user.ID),
+	}, 24 * time.Hour)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "token generation failed",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"accessToken": token,
+	})
 }
