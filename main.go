@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"auth/packages/_jwt"
@@ -43,6 +44,7 @@ func main() {
 	auth := v1.Group("/auth")
 	auth.POST("/signup", signup)
 	auth.POST("/login", login)
+	auth.POST("/verify", verifyToken)
 
 	v1.GET("/ping", ping)
 	r.Run("localhost:3001") 
@@ -148,4 +150,46 @@ func login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"accessToken": token,
 	})
+}
+
+func verifyToken(c *gin.Context) {
+	h := c.GetHeader("Authorization")
+	// split header into 2
+	partitions := strings.Split(h, " ")
+	if len(partitions) != 2 {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid token",
+		})
+		return
+	}
+
+	// check if the first partition is Bearer
+	if partitions[0] != "Bearer" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid token",
+		})
+		return
+	}
+
+	// validate token
+	claims, err := _jwt.Claims(partitions[1])
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid token",
+		})
+		return
+	}
+
+	userId := claims.CustomClaims["id"]
+	db := getDB()
+
+	var user User
+	if err := db.Where("id = ?", userId).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid token",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)	
 }
