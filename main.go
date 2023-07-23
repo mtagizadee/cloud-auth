@@ -87,6 +87,8 @@ func signup(c *gin.Context) {
 	user := User{
 		Email: dto.Email,
 		Password: dto.Password,
+		AppId: dto.AppId,
+		CompanyId: dto.CompanyId,
 	}
 
 	db := getDB()
