@@ -42,12 +42,11 @@ func main() {
 	fmt.Println("Database Migrated")
 
 	// requests can be accepted only from localhost:8080
-	r.Use(gatewayAccessOnly())
+	r.Use(GatewayAccessOnlyMiddleWare())
 		
-	auth := r.Group("/auth")
-	auth.POST("/signup", signup)
-	auth.POST("/login", login)
-	auth.POST("/verify", verifyToken)
+	r.POST("/signup", signup)
+	r.POST("/login", login)
+	r.POST("/verify", verifyToken)
 
 	r.GET("/ping", ping)
 	r.Run("localhost:3001") 
@@ -59,7 +58,7 @@ func ping(c *gin.Context) {
 	})
 }
 
-func gatewayAccessOnly() gin.HandlerFunc {
+func GatewayAccessOnlyMiddleWare() gin.HandlerFunc {
 	// Replace "gatewayIP" with the actual IP address of your gateway service (e.g., "127.0.0.1" or "localhost").
 	gatewayIP := "127.0.0.1"
 	gatewayPort := "8080"
