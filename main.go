@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -41,18 +42,7 @@ func main() {
 	fmt.Println("Database Migrated")
 
 	// requests can be accepted only from localhost:8080
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
-		
-		c.Next()
-	})
+	r.Use(gatewayAccessOnly())
 		
 	auth := r.Group("/auth")
 	auth.POST("/signup", signup)
@@ -67,6 +57,35 @@ func ping(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "pong",
 	})
+}
+
+func gatewayAccessOnly() gin.HandlerFunc {
+	// Replace "gatewayIP" with the actual IP address of your gateway service (e.g., "127.0.0.1" or "localhost").
+	gatewayIP := "127.0.0.1"
+	gatewayPort := "8080"
+ 
+	return func(c *gin.Context) {
+		clientIP, clientPort, err := net.SplitHostPort(c.Request.RemoteAddr)
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		if clientIP != gatewayIP {
+			// Block requests from any other IP addresses
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
+		if clientPort != gatewayPort {
+			// Block requests from any other ports
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
+		// Allow requests from the gateway service
+		c.Next()
+	}
 }
 
 type User struct {
