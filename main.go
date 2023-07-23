@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
-	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -40,9 +39,6 @@ func main() {
 		panic("failed to migrate database")
 	}
 	fmt.Println("Database Migrated")
-
-	// requests can be accepted only from localhost:8080
-	r.Use(GatewayAccessOnlyMiddleWare())
 		
 	r.POST("/signup", signup)
 	r.POST("/login", login)
@@ -56,35 +52,6 @@ func ping(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "pong",
 	})
-}
-
-func GatewayAccessOnlyMiddleWare() gin.HandlerFunc {
-	// Replace "gatewayIP" with the actual IP address of your gateway service (e.g., "127.0.0.1" or "localhost").
-	gatewayIP := "127.0.0.1"
-	gatewayPort := "8080"
- 
-	return func(c *gin.Context) {
-		clientIP, clientPort, err := net.SplitHostPort(c.Request.RemoteAddr)
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		if clientIP != gatewayIP {
-			// Block requests from any other IP addresses
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-
-		if clientPort != gatewayPort {
-			// Block requests from any other ports
-			c.AbortWithStatus(http.StatusForbidden)
-			return
-		}
-
-		// Allow requests from the gateway service
-		c.Next()
-	}
 }
 
 type User struct {
