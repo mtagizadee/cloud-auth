@@ -23,8 +23,7 @@ func getDB() *gorm.DB {
 func main() {
 	r := gin.Default()
 	
-	api := r.Group("/api")
-	v1 := api.Group("/v1")
+	
 
 	dsn := "root:root@tcp(127.0.0.1:3306)/auth?charset=utf8mb4&parseTime=True&loc=Local"
   db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -41,12 +40,12 @@ func main() {
 	}
 	fmt.Println("Database Migrated")
 
-	auth := v1.Group("/auth")
+	auth := r.Group("/auth")
 	auth.POST("/signup", signup)
 	auth.POST("/login", login)
 	auth.POST("/verify", verifyToken)
 
-	v1.GET("/ping", ping)
+	r.GET("/ping", ping)
 	r.Run("localhost:3001") 
 }
 
