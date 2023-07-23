@@ -65,6 +65,8 @@ type User struct {
 type SignupUserDto struct {
 	Email string `binding:"required,email"`
 	Password string `binding:"required,min=8,max=32"`
+	AppId int `binding:"required"`
+	CompanyId int `binding:"required"`
 }
 
 func (dto *SignupUserDto) HashPassword() {
