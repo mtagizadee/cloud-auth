@@ -56,10 +56,10 @@ func ping(c *gin.Context) {
 
 type User struct {
 	gorm.Model
-	Email string `gorm:"unique,not null" binding:"required,email"`
+	Email string `gorm:"uniqueIndex:idx_app_id_company_id_email,unique;type:varchar(255);not null"`
 	Password string `gorm:"not null" binding:"required,min=8,max=32" json:"-"`
-	CompanyId int `gorm:"not null"`
-	AppId int `gorm:"not null"`
+	CompanyId int `gorm:"uniqueIndex:idx_app_id_company_id_email;not null"`
+	AppId int `gorm:"uniqueIndex:idx_app_id_company_id_email;not null"`
 }
 
 type SignupUserDto struct {
